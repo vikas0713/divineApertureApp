@@ -1,0 +1,1 @@
+"""Divine Aperture FastAPI application."""
