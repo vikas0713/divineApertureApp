@@ -23,3 +23,15 @@ export async function submitWaitlist(entry: WaitlistEntry) {
   }
   return { ok: true, demo: false }
 }
+
+export async function queueDriveImport(folderId: string, token: string, eventId?: string) {
+  if (!apiBaseUrl) return { status: 'demo', message: 'Drive import is available after API setup.', folder_id: folderId }
+  const response = await fetch(`${apiBaseUrl}/admin/drive/import`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ folder_id: folderId, event_id: eventId }),
+  })
+  const body = await response.json().catch(() => ({})) as { detail?: string; status?: string; message?: string; folder_id?: string }
+  if (!response.ok) throw new Error(body.detail || 'Unable to queue Drive import')
+  return body
+}
