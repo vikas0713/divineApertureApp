@@ -14,3 +14,34 @@ port = 54323
 
 [auth]
 enabled = true
+# Where Supabase sends the browser back after sign-in. Must match the origin
+# the app is actually served from; Vite falls back to 5174+ when 5173 is taken.
+site_url = "http://localhost:5173"
+additional_redirect_urls = [
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "http://localhost:5175",
+  "http://127.0.0.1:5173",
+  "http://127.0.0.1:5174",
+]
+
+[auth.email]
+enable_signup = false          # ADR-007: the superadmin allowlist is the only way in
+enable_confirmations = false   # local only
+
+# Viewers sign in with Google before a gallery opens (ADR-009).
+#
+# Credentials come from the environment so they are never committed. Put them
+# in supabase/.env (gitignored) or export them before `supabase start`:
+#   SUPABASE_AUTH_GOOGLE_CLIENT_ID=...apps.googleusercontent.com
+#   SUPABASE_AUTH_GOOGLE_SECRET=GOCSPX-...
+#
+# In the Google Cloud OAuth client, the authorised redirect URI is Supabase's
+# callback, NOT this app:
+#   http://127.0.0.1:54321/auth/v1/callback                  (local)
+#   https://<project-ref>.supabase.co/auth/v1/callback       (hosted)
+[auth.external.google]
+enabled = true
+client_id = "env(SUPABASE_AUTH_GOOGLE_CLIENT_ID)"
+secret = "env(SUPABASE_AUTH_GOOGLE_SECRET)"
+skip_nonce_check = false

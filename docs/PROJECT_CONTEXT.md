@@ -22,12 +22,30 @@ Divine Aperture Studio is a premium, mobile-first photo-sharing platform for cre
 
 ## Current repository state
 
-This repository currently contains product and visual design documentation only:
+Last verified: 2026-09-24.
 
-- `PRODUCT.md` — initial product vision and photographer workflow
-- `CSS_DESIGN.md` — five proposed visual themes/design token sets
+Working:
 
-There is currently no application code, database schema, deployment configuration, payment integration, email integration, or image-processing pipeline.
+- React + TypeScript + Vite frontend: creator landing, client gallery
+  (paginated grid, lightbox, favorites/selections as local state), login,
+  creator waitlist, and a superadmin dashboard.
+- FastAPI backend: `/api/health`, `/api/waitlist`, and authenticated
+  `/api/admin/events` (create, list, detail, publish).
+- Supabase Postgres schema with RLS on every table, a trigger that creates
+  `profiles` rows, a seeded studio, and `promote_to_superadmin()`.
+- Superadmin sign-in with email + password, plus the Google OAuth button.
+
+Not built yet:
+
+- The media pipeline. `POST /api/admin/drive/import` is an authenticated stub:
+  no Drive OAuth, no Drive listing or download, no R2 client, no signed URLs,
+  no image variants. Gallery photos are still Unsplash URLs from
+  `frontend/src/data/demo.ts`.
+- Favorites, selections, and print requests exist in the schema and the UI but
+  are never persisted.
+- No payments, transactional email, or deployment configuration.
+
+All ADRs in `DECISIONS.md` remain *Proposed*; none has been accepted.
 
 ## Recommended initial direction
 

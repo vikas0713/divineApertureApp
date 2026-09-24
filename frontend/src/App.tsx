@@ -1,65 +1,111 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
+import type { FormEvent, ReactElement } from 'react'
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { ArrowLeft, ArrowUpRight, Check, ChevronLeft, ChevronRight, Cloud, Download, ExternalLink, FolderOpen, Heart, LogOut, Menu, Plus, RefreshCw, Settings, Sparkles, X } from 'lucide-react'
 import { Brand } from './components/Brand'
 import { GoogleButton } from './components/GoogleButton'
 import { AdSlot } from './components/AdSlot'
+import { StorageLogos } from './components/StorageLogos'
 import { PhotoCard } from './components/PhotoCard'
 import { WaitlistForm } from './components/WaitlistForm'
+import { AdminDashboard } from './components/AdminDashboard'
+import { GalleryPage } from './components/GalleryPage'
 import { demoEvent } from './data/demo'
 import { initializeAnalytics, track } from './lib/analytics'
-import { getAccessToken, isSupabaseConfigured, signOut, supabase } from './lib/supabase'
-import { createEvent, queueDriveImport } from './lib/api'
+import { isSupabaseConfigured, signInWithPassword, signOut, supabase } from './lib/supabase'
 import type { GalleryEvent, Photo, SessionUser } from './types'
 import './styles.css'
 
-type View = 'landing' | 'gallery' | 'login' | 'waitlist' | 'admin'
 type LoginMode = 'client' | 'admin'
 
 export default function App() {
-  const [view, setView] = useState<View>('landing')
-  const [loginMode, setLoginMode] = useState<LoginMode>('client')
   const [user, setUser] = useState<SessionUser | null>(null)
+  // Distinguishes "no session" from "session not resolved yet". Without this,
+  // a hard refresh on /admin redirects to the login page before
+  // getSession() has had a chance to restore the session.
+  const [sessionLoaded, setSessionLoaded] = useState(!isSupabaseConfigured)
   const [event, setEvent] = useState<GalleryEvent>(demoEvent)
   const [activePhoto, setActivePhoto] = useState<Photo | null>(null)
-  const [showCreate, setShowCreate] = useState(false)
   const [mobileMenu, setMobileMenu] = useState(false)
   const adsEnabled = import.meta.env.VITE_ADS_ENABLED === 'true'
   const isDemo = !isSupabaseConfigured
+  const navigate = useNavigate()
 
   useEffect(() => {
     if (import.meta.env.VITE_GA_MEASUREMENT_ID) initializeAnalytics()
     if (!supabase) return
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session?.user) setUser({ email: data.session.user.email ?? '', name: data.session.user.user_metadata?.full_name ?? 'Client', role: isSuperadmin(data.session.user.email) ? 'superadmin' : 'client', avatar: data.session.user.user_metadata?.avatar_url })
+      if (data.session?.user) setUser(toSessionUser(data.session.user))
+      setSessionLoaded(true)
     })
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) setUser({ email: session.user.email ?? '', name: session.user.user_metadata?.full_name ?? 'Client', role: isSuperadmin(session.user.email) ? 'superadmin' : 'client', avatar: session.user.user_metadata?.avatar_url })
-      else setUser(null)
+      setUser(session?.user ? toSessionUser(session.user) : null)
+      setSessionLoaded(true)
     })
     return () => listener.subscription.unsubscribe()
   }, [])
 
-  function isSuperadmin(email?: string | null) { return Boolean(email && email === import.meta.env.VITE_SUPERADMIN_EMAIL) }
-  function openGallery() { setView('gallery'); track('gallery_viewed', { gallery_type: 'private' }) }
-  function openAdmin() { if (user?.role === 'superadmin') { setView('admin'); track('admin_workspace_viewed') } else { setLoginMode('admin'); setView('login') } }
-  async function logout() { await signOut(); setUser(null); setView('landing') }
+  function openGallery() { track('gallery_viewed', { gallery_type: 'private' }); navigate('/gallery') }
+  function openAdmin() { track('admin_workspace_viewed'); navigate('/admin') }
+  async function logout() { await signOut(); setUser(null); navigate('/') }
 
-  if (view === 'login') return <LoginScreen mode={loginMode} onBack={() => setView('landing')} onDemoLogin={() => { const demoUser = loginMode === 'admin' ? { email: 'studio@divineaperture.test', name: 'Divine Aperture', role: 'superadmin' as const } : { email: 'client@example.com', name: 'Gallery guest', role: 'client' as const }; setUser(demoUser); setView(loginMode === 'admin' ? 'admin' : 'gallery') }} onClientLogin={() => { setUser({ email: 'client@example.com', name: 'Gallery guest', role: 'client' }); openGallery() }} />
-  if (view === 'waitlist') return <WaitlistScreen onBack={() => setView('landing')} />
-  if (view === 'gallery') return <Gallery event={event} user={user} adsEnabled={adsEnabled && event.plan === 'free'} activePhoto={activePhoto} onActivePhoto={setActivePhoto} onBack={() => setView('landing')} onLogin={() => setView('login')} />
-  if (view === 'admin') return <Admin event={event} user={user} onBack={() => setView('landing')} onLogout={logout} onCreate={() => setShowCreate(true)} onRefresh={() => setEvent((current) => ({ ...current, photos: [...current.photos] }))} onCreateEvent={async (title, date, location) => {
-    if (!isSupabaseConfigured) {
-      setEvent((current) => ({ ...current, id: `demo-${Date.now()}`, title, date, location, status: 'draft', photos: [] }))
-      setShowCreate(false)
-      return
-    }
-    const token = await getAccessToken()
-    if (!token) throw new Error('Your session has expired. Please sign in again.')
-    const created = await createEvent(title, date, location, token)
-    setEvent((current) => ({ ...current, id: created.id ?? current.id, title: created.title ?? title, subtitle: created.subtitle ?? 'A new story by Divine Aperture Studio', date: created.event_date ?? date, location: created.location ?? location, status: 'draft', plan: created.plan === 'paid' ? 'paid' : 'free', photos: [] }))
-    setShowCreate(false)
-  }} showCreate={showCreate} onCloseCreate={() => setShowCreate(false)} />
-  return <CreatorLanding user={user} mobileMenu={mobileMenu} onMenu={() => setMobileMenu(!mobileMenu)} onGallery={openGallery} onAdmin={openAdmin} onLogin={() => setView('login')} onWaitlist={() => setView('waitlist')} onLogout={logout} isDemo={isDemo} />
+  function demoLogin(role: 'superadmin' | 'client') {
+    setUser(role === 'superadmin'
+      ? { email: 'studio@divineaperture.test', name: 'Divine Aperture', role: 'superadmin' }
+      : { email: 'client@example.com', name: 'Gallery guest', role: 'client' })
+    navigate(role === 'superadmin' ? '/admin' : '/gallery')
+  }
+
+  return (
+    <Routes>
+      <Route path="/" element={
+        <CreatorLanding user={user} mobileMenu={mobileMenu} onMenu={() => setMobileMenu(!mobileMenu)} onGallery={openGallery} onAdmin={openAdmin} onLogin={() => navigate('/login')} onWaitlist={() => navigate('/waitlist')} onLogout={logout} isDemo={isDemo} />
+      } />
+      <Route path="/gallery" element={
+        <Gallery event={event} user={user} adsEnabled={adsEnabled && event.plan === 'free'} activePhoto={activePhoto} onActivePhoto={setActivePhoto} onBack={() => navigate('/')} onLogin={() => navigate('/login')} />
+      } />
+      <Route path="/g/:slug" element={
+        <GalleryPage user={user} sessionLoaded={sessionLoaded} onBack={() => navigate('/')} />
+      } />
+      <Route path="/waitlist" element={<WaitlistScreen onBack={() => navigate('/')} />} />
+      <Route path="/login" element={
+        <LoginScreen mode="client" onBack={() => navigate('/')} onDemoLogin={() => demoLogin('client')} onClientLogin={() => { setUser({ email: 'client@example.com', name: 'Gallery guest', role: 'client' }); openGallery() }} />
+      } />
+      <Route path="/admin/login" element={
+        user?.role === 'superadmin'
+          ? <Navigate to="/admin" replace />
+          : <LoginScreen mode="admin" onBack={() => navigate('/')} onDemoLogin={() => demoLogin('superadmin')} onClientLogin={() => undefined} />
+      } />
+      <Route path="/admin" element={
+        <RequireSuperadmin user={user} sessionLoaded={sessionLoaded}>
+          <AdminDashboard onBack={() => navigate('/')} onLogout={logout} />
+        </RequireSuperadmin>
+      } />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  )
+}
+
+function toSessionUser(user: { email?: string | null; user_metadata?: Record<string, string> }): SessionUser {
+  const email = user.email ?? ''
+  return {
+    email,
+    name: user.user_metadata?.full_name ?? 'Client',
+    role: email && email === import.meta.env.VITE_SUPERADMIN_EMAIL ? 'superadmin' : 'client',
+    avatar: user.user_metadata?.avatar_url,
+  }
+}
+
+/**
+ * Gate for the admin area. The backend enforces the same rule with a 403 — this
+ * only decides what the browser shows, and where to send you instead.
+ */
+function RequireSuperadmin({ user, sessionLoaded, children }: { user: SessionUser | null; sessionLoaded: boolean; children: ReactElement }) {
+  const location = useLocation()
+  if (!sessionLoaded) return <div className="page centered-page"><main className="login-card"><p className="eyebrow">One moment</p></main></div>
+  if (!user) return <Navigate to="/admin/login" replace state={{ from: location.pathname }} />
+  if (user.role !== 'superadmin') return <Navigate to="/" replace />
+  return children
 }
 
 function Header({ user, onBack, onLogin, onLogout, compact = false }: { user: SessionUser | null; onBack?: () => void; onLogin?: () => void; onLogout?: () => void; compact?: boolean }) {
@@ -71,12 +117,45 @@ function Landing({ user, mobileMenu, onMenu, onGallery, onAdmin, onLogin, onWait
 }
 
 function CreatorLanding({ user, mobileMenu, onMenu, onGallery, onAdmin, onLogin, onWaitlist, onLogout, isDemo }: { user: SessionUser | null; mobileMenu: boolean; onMenu: () => void; onGallery: () => void; onAdmin: () => void; onLogin: () => void; onWaitlist: () => void; onLogout: () => void; isDemo: boolean }) {
-  return <div className="page landing-page"><Header user={user} onLogout={onLogout} /><main><section className="hero"><div className="hero-copy"><p className="eyebrow">Photo sharing for creators</p><h1>Let the work<br /><em>travel beautifully.</em></h1><p className="hero-lede">Give every customer a private, effortless way to experience your photographs — wherever you keep the originals.</p><div className="hero-actions"><button className="button button-dark" onClick={onGallery}>View a gallery <ArrowUpRight size={16} /></button><button className="button button-light" onClick={onWaitlist}>For creators <ArrowUpRight size={16} /></button></div>{isDemo && <p className="demo-note">Demo mode · connect Supabase to enable Google login</p>}</div><div className="hero-image"><img src="https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1500&q=88" alt="Photographs shared with a couple" /><span>01 / 08</span></div></section><section className="statement"><p className="eyebrow">Your storage, your choice</p><div><h2>One beautiful link<br /><em>for every customer.</em></h2><p>Use Google Drive, Dropbox, or storage from Divine Aperture. We make the sharing experience feel effortless.</p></div></section><section className="feature-grid"><article className="feature-large"><img src="https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=1200&q=85" alt="A curated photo collection" /><span>From your archive to their hands</span></article><article className="feature-copy"><Sparkles size={20} strokeWidth={1.2} /><h3>Simple for you.<br />Beautiful for them.</h3><p>Bring your photos from the storage you already use, send one private link, and let customers browse, select, download, and request prints.</p><button className="arrow-link" onClick={onAdmin}>Enter creator space <ArrowUpRight size={15} /></button></article></section><section className="creator-cta"><div><p className="eyebrow">For photographers and visual creators</p><h2>Share more.<br /><em>Manage less.</em></h2></div><button className="button button-dark" onClick={onWaitlist}>Join the waitlist <ArrowUpRight size={16} /></button></section></main><footer className="site-footer"><Brand /><span>© 2025 Divine Aperture Studio</span><div><button onClick={onWaitlist}>Creator waitlist</button><button onClick={onLogin}>Customer login</button></div></footer>{mobileMenu && <div className="mobile-menu"><button onClick={onGallery}>View gallery</button><button onClick={onWaitlist}>Join waitlist</button><button onClick={onLogin}>Customer login</button><button onClick={onMenu}>Close</button></div>}</div>
+  return <div className="page landing-page"><Header user={user} onLogout={onLogout} /><main><section className="hero"><div className="hero-copy"><p className="eyebrow">Photo sharing for creators</p><h1>Let the work<br /><em>travel beautifully.</em></h1><p className="hero-lede">Give every customer a private, effortless way to experience your photographs — wherever you keep the originals.</p><div className="hero-actions"><button className="button button-dark" onClick={onGallery}>View a gallery <ArrowUpRight size={16} /></button><button className="button button-light" onClick={onWaitlist}>For creators <ArrowUpRight size={16} /></button></div>{isDemo && <p className="demo-note">Demo mode · connect Supabase to enable Google login</p>}</div><div className="hero-image"><img src="https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1500&q=88" alt="Photographs shared with a couple" /><span>01 / 08</span></div></section><section className="statement"><div><p className="eyebrow">Your storage, your choice</p><StorageLogos /></div><div><h2>One beautiful link<br /><em>for every customer.</em></h2><p>Use Google Drive, Dropbox, or storage from Divine Aperture. We make the sharing experience feel effortless.</p></div></section><section className="feature-grid"><article className="feature-large"><img src="https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=1200&q=85" alt="A curated photo collection" /><span>From your archive to their hands</span></article><article className="feature-copy"><Sparkles size={20} strokeWidth={1.2} /><h3>Simple for you.<br />Beautiful for them.</h3><p>Bring your photos from the storage you already use, send one private link, and let customers browse, select, download, and request prints.</p><button className="arrow-link" onClick={onAdmin}>Enter creator space <ArrowUpRight size={15} /></button></article></section><section className="creator-cta"><div><p className="eyebrow">For photographers and visual creators</p><h2>Share more.<br /><em>Manage less.</em></h2></div><button className="button button-dark" onClick={onWaitlist}>Join the waitlist <ArrowUpRight size={16} /></button></section></main><footer className="site-footer"><Brand /><span>© 2025 Divine Aperture Studio</span><div><button onClick={onWaitlist}>Creator waitlist</button><button onClick={onLogin}>Customer login</button></div></footer>{mobileMenu && <div className="mobile-menu"><button onClick={onGallery}>View gallery</button><button onClick={onWaitlist}>Join waitlist</button><button onClick={onLogin}>Customer login</button><button onClick={onMenu}>Close</button></div>}</div>
 }
 
 function LoginScreen({ mode, onBack, onClientLogin, onDemoLogin }: { mode: LoginMode; onBack: () => void; onClientLogin: () => void; onDemoLogin: () => void }) {
   const isAdmin = mode === 'admin'
-  return <div className="page centered-page"><Header user={null} onBack={onBack} onLogin={() => undefined} /><main className="login-card"><p className="eyebrow">{isAdmin ? 'Private studio access' : 'Private client access'}</p><h1>{isAdmin ? <>Enter<br /><em>the studio.</em></> : <>Welcome to<br /><em>your gallery.</em></>}</h1><p>{isAdmin ? 'Sign in with the allowlisted Google account to manage events and imports.' : 'Sign in with Google to view your photographs, make selections, and request prints.'}</p><GoogleButton label={isAdmin ? 'Continue as studio admin' : 'Continue as client'} onDemoLogin={onDemoLogin} />{!isAdmin && <button className="demo-link" onClick={onClientLogin}>Use demo client access</button>}<small>By continuing, you agree to the studio’s privacy policy.</small></main></div>
+  return <div className="page centered-page"><Header user={null} onBack={onBack} onLogin={() => undefined} /><main className="login-card"><p className="eyebrow">{isAdmin ? 'Private studio access' : 'Private client access'}</p><h1>{isAdmin ? <>Enter<br /><em>the studio.</em></> : <>Welcome to<br /><em>your gallery.</em></>}</h1><p>{isAdmin ? 'Sign in with the allowlisted studio account to manage events and imports.' : 'Sign in with Google to view your photographs, make selections, and request prints.'}</p><div className="login-panel">{isAdmin && <PasswordLogin onDemoLogin={onDemoLogin} />}<GoogleButton label={isAdmin ? 'Continue as studio admin' : 'Continue as client'} onDemoLogin={onDemoLogin} />{!isAdmin && <button className="demo-link" onClick={onClientLogin}>Use demo client access</button>}<small>By continuing, you agree to the studio’s privacy policy.</small></div></main></div>
+}
+
+function PasswordLogin({ onDemoLogin }: { onDemoLogin: () => void }) {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [signingIn, setSigningIn] = useState(false)
+  const [error, setError] = useState('')
+
+  async function submit(formEvent: FormEvent) {
+    formEvent.preventDefault()
+    setError('')
+    // Without Supabase there is nothing to authenticate against; fall through
+    // to the same demo session the Google button uses.
+    if (!isSupabaseConfigured) { onDemoLogin(); return }
+    setSigningIn(true)
+    try {
+      await signInWithPassword(email, password)
+    } catch (signInError) {
+      setError(signInError instanceof Error ? signInError.message : 'Unable to sign in')
+    } finally {
+      setSigningIn(false)
+    }
+  }
+
+  return (
+    <form className="password-login" onSubmit={submit}>
+      <label>Email<input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@studio.com" autoComplete="username" /></label>
+      <label>Password<input required type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" autoComplete="current-password" /></label>
+      {error && <p className="form-error">{error}</p>}
+      <button className="button button-dark" type="submit" disabled={signingIn}>{signingIn ? 'Signing in…' : 'Sign in'} <ArrowUpRight size={15} /></button>
+      <span className="login-divider">or</span>
+    </form>
+  )
 }
 
 function WaitlistScreen({ onBack }: { onBack: () => void }) {
@@ -109,51 +188,4 @@ function Gallery({ event, user, adsEnabled, activePhoto, onActivePhoto, onBack, 
 function Pagination({ page, pageCount, onChange }: { page: number; pageCount: number; onChange: (page: number) => void }) {
   if (pageCount <= 1) return null
   return <nav className="gallery-pagination" aria-label="Gallery pages"><button className="pagination-button" disabled={page === 1} onClick={() => onChange(page - 1)}>Previous</button><span>Page {page} of {pageCount}</span><button className="pagination-button" disabled={page === pageCount} onClick={() => onChange(page + 1)}>Next</button></nav>
-}
-
-function Admin({ event, user, onBack, onLogout, onCreate, onRefresh, onCreateEvent, showCreate, onCloseCreate }: { event: GalleryEvent; user: SessionUser | null; onBack: () => void; onLogout: () => void; onCreate: () => void; onRefresh: () => void; onCreateEvent: (title: string, date: string, location: string) => Promise<void>; showCreate: boolean; onCloseCreate: () => void }) {
-  const [folder, setFolder] = useState(event.driveFolderId ?? '')
-  const [importing, setImporting] = useState(false)
-  const [imported, setImported] = useState(false)
-  async function importFolder() {
-    if (!folder.trim()) return
-    setImporting(true)
-    track('drive_import_started')
-    if (!isSupabaseConfigured) {
-      window.setTimeout(() => {
-        setImported(true)
-        setImporting(false)
-        track('drive_import_completed', { import_status: 'demo' })
-      }, 500)
-      return
-    }
-    try {
-      const token = await getAccessToken()
-      if (!token) throw new Error('Your session has expired. Please sign in again.')
-      await queueDriveImport(folder.trim(), token, event.id)
-      setImported(true)
-      track('drive_import_completed', { import_status: 'queued' })
-    } catch (error) {
-      setImported(false)
-      alert(error instanceof Error ? error.message : 'Unable to queue Drive import')
-      track('drive_import_failed', { import_status: 'failed' })
-    } finally {
-      setImporting(false)
-    }
-  }
-  return <div className="page admin-page"><header className="site-header"><div className="header-inner"><Brand /><div className="header-right"><span className="admin-label"><Settings size={14} /> Superadmin workspace</span><button className="text-button" onClick={onLogout}><LogOut size={15} /> Sign out</button></div></div></header><main className="admin-main"><div className="admin-top"><div><p className="eyebrow">Studio / Overview</p><h1>Good morning,<br /><em>Divine Aperture.</em></h1></div><button className="button button-dark" onClick={onCreate}><Plus size={16} /> New event</button></div><div className="admin-stats"><div><span>Published stories</span><strong>01</strong></div><div><span>Photos in delivery</span><strong>{event.photos.length}</strong></div><div><span>Selected by clients</span><strong>{event.photos.filter((photo) => photo.selected).length.toString().padStart(2, '0')}</strong></div></div><section className="admin-section"><div className="section-heading"><div><p className="eyebrow">Your stories</p><h2>Events</h2></div><button className="text-button" onClick={onBack}>Preview as client <ExternalLink size={15} /></button></div><article className="event-row"><img src={event.cover} alt="" /><div className="event-row-copy"><span className="event-status"><i /> {event.status === 'draft' ? 'Draft' : 'Published'} · Free tier</span><h3>{event.title}</h3><p>{event.date} · {event.location}</p></div><button className="icon-button" onClick={onRefresh} aria-label="Refresh event"><RefreshCw size={17} /></button></article></section><section className="admin-section import-section"><div className="section-heading"><div><p className="eyebrow">Google Drive source</p><h2>Bring in the work.</h2></div><Cloud size={24} strokeWidth={1.2} /></div><p className="section-lede">Paste the folder ID of a Drive folder. We’ll import direct image files and prepare them for your gallery.</p><div className="import-box"><FolderOpen size={20} /><input value={folder} onChange={(e) => setFolder(e.target.value)} placeholder="Google Drive folder ID" /><button className="button button-dark" onClick={importFolder} disabled={importing}>{importing ? 'Importing…' : 'Import photos'} <ArrowUpRight size={15} /></button></div>{imported && <p className="import-success"><Check size={15} /> Import complete. {event.photos.length} images are ready.</p>}<small className="security-note">Your Drive folder is only used as an import source. Gallery images are delivered privately.</small></section><section className="admin-section split-section"><div><p className="eyebrow">Creator access</p><h2>One studio,<br /><em>for now.</em></h2><p className="section-lede">The waitlist is collecting interest while this superadmin workspace stays private.</p></div><div className="waitlist-mini"><span>Creator waitlist</span><strong>12</strong><button className="arrow-link">Review requests <ArrowUpRight size={15} /></button></div></section></main>{showCreate && <CreateEventModal onClose={onCloseCreate} onSubmit={onCreateEvent} />}</div>
-}
-
-function CreateEventModal({ onClose, onSubmit }: { onClose: () => void; onSubmit: (title: string, date: string, location: string) => Promise<void> }) {
-  const [title, setTitle] = useState('')
-  const [date, setDate] = useState('')
-  const [location, setLocation] = useState('')
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
-  async function submit() {
-    setSaving(true)
-    setError('')
-    try { await onSubmit(title, date, location) } catch (submissionError) { setError(submissionError instanceof Error ? submissionError.message : 'Unable to create event') } finally { setSaving(false) }
-  }
-  return <div className="modal-backdrop"><form className="modal" onSubmit={(e) => { e.preventDefault(); void submit() }}><button type="button" className="modal-close" onClick={onClose}><X size={17} /></button><p className="eyebrow">A new story</p><h2>Create event</h2><label>Event title<input required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="A day in the Aravallis" /></label><label>Date<input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></label><label>Location<input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Udaipur, Rajasthan" /></label>{error && <p className="form-error">{error}</p>}<button className="button button-dark" type="submit" disabled={saving}>{saving ? 'Creating…' : 'Create draft'} <ArrowUpRight size={15} /></button></form></div>
 }

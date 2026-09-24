@@ -2,41 +2,80 @@
 
 Creator-to-customer photo-sharing platform for Divine Aperture Studio.
 
+## Repository layout
+
+```text
+backend/    FastAPI application — routes, schemas, Supabase clients, tests
+frontend/   React + TypeScript + Vite application
+supabase/   Postgres migrations, RLS policies, local CLI config
+docs/       Product, architecture, cost, and decision records
+```
+
+`start-backend` and `start-frontend` at the root boot each side.
+
 ## Local setup
 
+### Database
+
 ```bash
+supabase start
+supabase db reset
+```
+
+`db reset` applies every migration from the baseline. See
+[supabase/README.md](supabase/README.md) for the one-time superadmin bootstrap —
+the account is created by hand in the Supabase dashboard and its password is
+never committed.
+
+### Frontend
+
+```bash
+cd frontend
 npm install
 cp .env.example .env.local
-npm run dev
+cd .. && ./start-frontend
 ```
 
-The app has a demo mode when Supabase variables are not configured. This keeps the visual/product work usable before external credentials are available.
+The app runs in demo mode when the Supabase variables are absent, which keeps
+visual and product work usable before credentials exist.
 
-## FastAPI backend
+### Backend
 
 ```bash
-cd backend
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -e '.[dev]'
-cp .env.example .env
-uvicorn app.main:app --reload --port 8000
+cp backend/.env.example backend/.env   # fill in from `supabase status`
+./start-backend
 ```
 
-The backend exposes `/api/health`, `/api/waitlist`, and the authenticated `/api/admin/drive/import` boundary. The Drive importer and R2 worker will use this boundary once provider credentials are configured.
+`start-backend` creates the virtualenv and installs dependencies on first run.
+The API exposes `/api/health`, `/api/waitlist`, and the authenticated
+`/api/admin/*` boundary.
 
-## Current slice
+## Tests
 
-- Editorial client gallery shell inspired by `wndws.space`
-- Single superadmin / creator workspace
-- Google login integration point through Supabase Auth
-- Client gallery login state
-- Google Drive folder import UI and refresh state
-- Creator waitlist form
-- Free-tier ad placement flag
-- Consent-aware GA4 integration point
-- Supabase schema in `supabase/migrations/001_initial_schema.sql`
+```bash
+cd frontend && npm run build     # tsc -b + vite build
+cd backend  && .venv/bin/pytest
+```
+
+## Documentation
+
+| Document | Covers |
+|---|---|
+| [docs/PRODUCT.md](docs/PRODUCT.md) | Product scope and photographer workflow |
+| [docs/PROJECT_CONTEXT.md](docs/PROJECT_CONTEXT.md) | Current state, assumptions, open decisions |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System design and delivery phases |
+| [docs/DECISIONS.md](docs/DECISIONS.md) | ADRs and unresolved questions |
+| [docs/GOOGLE_DRIVE_IMPORT.md](docs/GOOGLE_DRIVE_IMPORT.md) | Drive import design |
+| [docs/CSS_DESIGN.md](docs/CSS_DESIGN.md) | Visual system and theme tokens |
+| [docs/COST_MODEL.md](docs/COST_MODEL.md) | Cost and deployment model |
+| [docs/TEST_MODE.md](docs/TEST_MODE.md) | Single-account test mode |
+| [docs/MONETIZATION.md](docs/MONETIZATION.md) | Monetization and advertising |
+| [docs/ANALYTICS.md](docs/ANALYTICS.md) | GA4 and consent |
+| [docs/WAITLIST.md](docs/WAITLIST.md) | Creator waitlist |
+| [docs/CLIENT_DESIGN_DIRECTION.md](docs/CLIENT_DESIGN_DIRECTION.md) | Client gallery design direction |
 
 ## External setup
 
-Configure Google OAuth and redirect URLs in Supabase, then set the environment variables from `.env.example`. Keep secrets out of Git.
+Configure Google OAuth and redirect URLs in Supabase, then set the environment
+variables from `frontend/.env.example` and `backend/.env.example`. Keep secrets
+out of Git.

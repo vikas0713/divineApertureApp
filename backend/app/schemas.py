@@ -1,6 +1,10 @@
 from datetime import date, datetime
+from typing import Literal
 
 from pydantic import AnyHttpUrl, BaseModel, ConfigDict, EmailStr, Field
+
+StorageType = Literal["google_drive", "dropbox", "divine_aperture"]
+EventStatus = Literal["draft", "published", "archived"]
 
 
 class HealthResponse(BaseModel):
@@ -29,22 +33,37 @@ class WaitlistResponse(BaseModel):
     created_at: datetime
 
 
-class DriveImportRequest(BaseModel):
-    folder_id: str = Field(min_length=10, max_length=200)
-    event_id: str | None = None
-
-
-class DriveImportResponse(BaseModel):
-    status: str
-    message: str
-    folder_id: str
-
-
 class EventCreate(BaseModel):
+    """Event fields the creator supplies.
+
+    studio_id, gallery_slug, status and plan are server-owned and must never
+    appear here.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
     title: str = Field(min_length=1, max_length=160)
+    location: str | None = Field(default=None, max_length=160)
     subtitle: str | None = Field(default=None, max_length=240)
     event_date: date | None = None
-    location: str | None = Field(default=None, max_length=160)
+    # A Drive file link, a bare Drive file id, or a plain image URL. Normalised
+    # to a renderable URL on write, so the column stays directly usable.
+    hero_image: str | None = Field(default=None, max_length=512)
+    storage_type: StorageType = "google_drive"
+    storage_url: AnyHttpUrl | None = None
+    downloads_enabled: bool = True
+
+
+class EventDownloadsUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    enabled: bool
+
+
+class EventStatusUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    status: EventStatus
 
 
 class EventResponse(BaseModel):
@@ -56,3 +75,33 @@ class EventResponse(BaseModel):
     gallery_slug: str
     status: str
     plan: str
+    hero_image_url: str | None = None
+    storage_type: str = "google_drive"
+    storage_url: str | None = None
+    drive_folder_id: str | None = None
+    created_at: datetime | None = None
+    downloads_enabled: bool = True
+
+
+class PhotoResponse(BaseModel):
+    id: str
+    filename: str
+    mime_type: str
+    width: int | None = None
+    height: int | None = None
+    sort_order: int = 0
+    drive_file_id: str | None = None
+    display_url: str | None = None
+    thumbnail_url: str | None = None
+    download_url: str | None = None
+
+
+class ImportResponse(BaseModel):
+    imported: int
+    updated: int
+    total: int
+
+
+class GalleryResponse(BaseModel):
+    event: EventResponse
+    photos: list[PhotoResponse]

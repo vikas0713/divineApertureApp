@@ -1,4 +1,4 @@
-import type { GalleryEvent, Photo } from '../types'
+import type { AdminEvent, GalleryEvent, Photo } from '../types'
 
 const images = [
   'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1400&q=85',
@@ -30,3 +30,23 @@ export const demoEvent: GalleryEvent = {
   driveFolderId: '1a2b3c_demo_drive_folder',
   photos: demoPhotos,
 }
+
+/** Dashboard rows used when Supabase is not configured. */
+export const demoAdminEvents: AdminEvent[] = [
+  {
+    id: 'event-aravalli',
+    title: 'A day in the Aravallis',
+    subtitle: 'A private collection by Divine Aperture Studio',
+    event_date: '2025-02-18',
+    location: 'Udaipur, Rajasthan',
+    gallery_slug: 'a-day-in-the-aravallis-demo0001',
+    status: 'published',
+    plan: 'free',
+    hero_image_url: images[0],
+    storage_type: 'google_drive',
+    storage_url: 'https://drive.google.com/drive/folders/1a2b3c_demo_drive_folder',
+    drive_folder_id: '1a2b3c_demo_drive_folder',
+    created_at: '2025-02-18T09:00:00Z',
+    downloads_enabled: true,
+  },
+]
