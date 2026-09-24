@@ -59,7 +59,7 @@ For initial testing, use one allowlisted superadmin account only. The superadmin
 - GA4 should be used for aggregate product and marketing analytics, with consent-aware tracking and no private photo/client data.
 - The client-facing gallery should use `wndws.space` as a visual reference: editorial, image-first, sparse, and catalog-like.
 - Gallery pages should use optimized display images and thumbnails, not original files.
-- Supabase stores photo metadata and permissions; R2 stores photo bytes.
+- Supabase stores photo metadata and permissions; R2 stores photo bytes. Use publishable keys in browser code and secret keys only on the backend.
 - Storage and bandwidth are the dominant infrastructure concerns.
 - The first release should avoid unnecessary microservices and paid infrastructure.
 

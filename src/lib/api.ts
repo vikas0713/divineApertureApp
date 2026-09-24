@@ -35,3 +35,15 @@ export async function queueDriveImport(folderId: string, token: string, eventId?
   if (!response.ok) throw new Error(body.detail || 'Unable to queue Drive import')
   return body
 }
+
+export async function createEvent(title: string, eventDate: string, location: string, token: string) {
+  if (!apiBaseUrl) throw new Error('API base URL is not configured')
+  const response = await fetch(`${apiBaseUrl}/admin/events`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ title, event_date: eventDate || null, location: location || null }),
+  })
+  const body = await response.json().catch(() => ({})) as { detail?: string; id?: string; subtitle?: string | null; gallery_slug?: string; status?: string; plan?: string; event_date?: string | null; location?: string | null; title?: string }
+  if (!response.ok) throw new Error(body.detail || 'Unable to create event')
+  return body
+}

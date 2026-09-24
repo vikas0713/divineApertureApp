@@ -8,12 +8,12 @@ from .config import get_settings
 @lru_cache
 def get_user_client() -> Client:
     settings = get_settings()
-    return create_client(settings.supabase_url, settings.supabase_anon_key)
+    return create_client(settings.supabase_url, settings.supabase_publishable_key)
 
 
 @lru_cache
 def get_admin_client() -> Client:
     settings = get_settings()
-    if not settings.supabase_service_role_key:
-        raise RuntimeError("SUPABASE_SERVICE_ROLE_KEY is required for server-side operations")
-    return create_client(settings.supabase_url, settings.supabase_service_role_key)
+    if not settings.supabase_secret_key:
+        raise RuntimeError("SUPABASE_SECRET_KEY is required for server-side operations")
+    return create_client(settings.supabase_url, settings.supabase_secret_key)

@@ -23,7 +23,7 @@ Browser
 
 ## Backend
 
-FastAPI is the application backend. It validates Supabase access tokens, enforces the superadmin allowlist for privileged routes, uses the Supabase service-role client only on the server, and exposes the public/admin API boundary.
+FastAPI is the application backend. It validates Supabase access tokens, enforces the superadmin allowlist for privileged routes, uses the Supabase secret-key client only on the server, and exposes the public/admin API boundary.
 
 Initial endpoints:
 
@@ -33,7 +33,7 @@ POST /api/waitlist
 POST /api/admin/drive/import
 ```
 
-The service-role key must never be shipped to the browser.
+The secret key must never be shipped to the browser.
 
 ## Frontend
 

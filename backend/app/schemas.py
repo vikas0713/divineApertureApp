@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import AnyHttpUrl, BaseModel, ConfigDict, EmailStr, Field
 
@@ -38,3 +38,21 @@ class DriveImportResponse(BaseModel):
     status: str
     message: str
     folder_id: str
+
+
+class EventCreate(BaseModel):
+    title: str = Field(min_length=1, max_length=160)
+    subtitle: str | None = Field(default=None, max_length=240)
+    event_date: date | None = None
+    location: str | None = Field(default=None, max_length=160)
+
+
+class EventResponse(BaseModel):
+    id: str
+    title: str
+    subtitle: str | None
+    event_date: date | None
+    location: str | None
+    gallery_slug: str
+    status: str
+    plan: str
