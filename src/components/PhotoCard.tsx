@@ -10,7 +10,7 @@ export function PhotoCard({ photo, onToggleFavorite, onToggleSelect, onOpen }: {
   return (
     <article className="photo-card">
       <button className="photo-image-button" onClick={onOpen} aria-label={`Open ${photo.title}`}>
-        <img src={photo.image} alt={photo.title} loading="lazy" />
+        <img src={photo.image} alt={photo.title} loading="lazy" decoding="async" fetchPriority="low" />
         <span className="photo-expand"><Maximize2 size={15} /></span>
       </button>
       <div className="photo-caption">

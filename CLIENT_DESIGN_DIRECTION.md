@@ -8,7 +8,7 @@ The client experience should borrow the reference site's editorial, catalog-like
 
 ## Direction
 
-- Image-first, editorial, and calm
+- Image-first, warm, and calm
 - Sparse navigation and very few competing controls
 - Grid/list browsing that feels like a curated archive
 - Large visual cards with quiet metadata
@@ -48,18 +48,17 @@ Focused photo viewer
 - Exposing file names as the primary interface
 - Excessive borders, badges, or app-like panels
 
-## Relationship to existing themes
+## Visual system
 
-Use `obsidian` or `midnight-gallery` as the initial dark foundation, but apply the reference's editorial restraint. A future light mode can use `editorial-ivory` or `warm-minimal`.
+Use `airy-host` as the current light foundation: warm white surfaces, soft gray borders, rounded cards, friendly coral actions, and generous breathing room. Keep the image-led restraint from the reference without making the product feel like a dark wedding portfolio.
 
 ## Product-specific adaptation
 
 The reference site is a public visual archive. Divine Aperture galleries are private client-delivery spaces, so the app must retain:
 
 - Google client login
-- Event privacy and access control
+- Collection privacy and access control
 - Favorites and selections
 - Approved downloads
 - Print/framing requests
 - Clear studio identity
-

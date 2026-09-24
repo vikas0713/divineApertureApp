@@ -1,17 +1,17 @@
 # Divine Aperture Studio
 ## Complete Product Specification & Implementation Plan for AI Coding Agent
 
-> Build a production-ready, mobile-first photography gallery, client-delivery, subscription, and print-ordering web application for **Divine Aperture Studio**.
+> Build a production-ready, mobile-first photo-sharing platform for creators and their customers, with subscriptions and optional print ordering for **Divine Aperture Studio**.
 
 ---
 
 # 1. PRODUCT VISION
 
-Divine Aperture Studio is a photography platform that allows professional photographers and photography studios to:
+Divine Aperture Studio is a photo-sharing platform that allows photographers, studios, and visual creators to:
 
-1. Create events.
+1. Create collections or customer deliveries.
 2. Upload high-resolution photographs.
-3. Select an event cover.
+3. Select a collection cover.
 4. Generate a private shareable gallery link.
 5. Share the gallery with clients.
 6. Require clients to authenticate using Google before accessing photographs.
@@ -19,8 +19,9 @@ Divine Aperture Studio is a photography platform that allows professional photog
 8. Allow clients to request physical prints.
 9. Allow clients to request framed photographs.
 10. Manage print/frame orders.
-11. Manage multiple photographers under one studio/workspace.
-12. Subscribe to plans based on photo allowance and creator/team limits.
+11. Manage multiple creators under one studio/workspace.
+12. Choose between connected storage and Divine Aperture-managed storage.
+13. Subscribe to plans based on storage, photo allowance, and creator/team limits.
 
 The most important product principle is:
 
@@ -28,7 +29,7 @@ The most important product principle is:
 
 The application should NOT feel like enterprise file-management software.
 
-It should feel like a premium digital extension of a professional photography studio.
+It should feel like a premium, welcoming front door between a creator and their customer.
 
 ---
 
@@ -45,9 +46,9 @@ Sign In
    ↓
 Dashboard
    ↓
-Create Event
+Create Collection
    ↓
-Add Event Cover
+Add Collection Cover
    ↓
 Upload HD Photos
    ↓

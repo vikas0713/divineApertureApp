@@ -1,6 +1,6 @@
 # Divine Aperture Studio
 
-Editorial photography delivery app for Divine Aperture Studio.
+Creator-to-customer photo-sharing platform for Divine Aperture Studio.
 
 ## Local setup
 

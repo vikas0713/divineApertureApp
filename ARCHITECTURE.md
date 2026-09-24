@@ -15,9 +15,9 @@ Browser
   ├─ Cloudflare Pages: React/Vite application
   ├─ Supabase Auth: Google and studio-user sessions
   ├─ Supabase Postgres: users, studios, events, photos, orders, plans
-  ├─ Google Drive API: photographer photo source
+  ├─ Storage connectors: Google Drive, Dropbox, and managed storage
   ├─ R2 signed download URLs: imported photo bytes
-  ├─ FastAPI: authenticated API, waitlist, event workflows, Drive orchestration
+  ├─ FastAPI: authenticated API, waitlist, event workflows, storage orchestration
   └─ R2/worker layer: private image bytes and future processing jobs
 ```
 

@@ -4,14 +4,14 @@ Last updated: 2026-09-23
 
 ## Product
 
-Divine Aperture Studio is a premium, mobile-first photography delivery platform. Photos are the product; the interface should stay quiet and gallery-oriented rather than feeling like enterprise file management.
+Divine Aperture Studio is a premium, mobile-first photo-sharing platform for creators and their customers. Photos are the product; the interface should stay quiet and gallery-oriented rather than feeling like enterprise file management.
 
 ## Core capabilities
 
 - Photographer/studio authentication
 - Studio/workspace management
 - Multiple photographers per studio
-- Event creation and cover selection
+- Collection creation and cover selection
 - High-resolution photo uploads
 - Private shareable galleries
 - Google authentication for clients
@@ -42,7 +42,7 @@ Use a cost-conscious, storage-aware architecture:
 - Resend for transactional email
 - Stripe Checkout or Razorpay for subscriptions/orders, selected after confirming launch geography
 
-The simplified upload experience should use Google Drive as the photographer's source: the photographer connects Google Drive, enters a folder ID during event creation, and the application imports the images into private R2 storage.
+Creators should be able to use the storage they already have—Google Drive, Dropbox, or Divine Aperture-managed storage. The first integration is Google Drive; Dropbox and managed storage follow behind the same source abstraction.
 
 For initial testing, use one allowlisted superadmin account only. The superadmin can use the application as both admin and creator. Public signup, creator invitations, and multi-user roles are deferred.
 
@@ -70,7 +70,7 @@ For initial testing, use one allowlisted superadmin account only. The superadmin
 3. Do clients download originals or only photographer-approved exports?
 4. Are print orders paid online in v1 or submitted as requests/quotes?
 5. Storage limits and retention policy for each subscription plan?
-6. Which visual theme is the default? Current recommendation: `obsidian`.
+6. Which visual theme is the default? Current direction: `airy-host`, a warm light creator-platform theme.
 
 7. Should imported Drive files be archived when removed from Drive, or removed from the gallery immediately?
 

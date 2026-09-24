@@ -1,5 +1,5 @@
 /* =========================================================
-   1. OBSIDIAN STUDIO — Recommended
+   1. OBSIDIAN STUDIO — Legacy option
    Premium dark photography UI
    ========================================================= */
 
@@ -108,7 +108,7 @@
 
 /* =========================================================
    5. WARM MINIMAL
-   Wedding / lifestyle / premium photography
+   Lifestyle / premium photography
    ========================================================= */
 
 [data-theme="warm-minimal"] {
@@ -130,4 +130,31 @@
   --success: #67866B;
   --warning: #B98A49;
   --error: #B9635C;
+}
+
+
+/* =========================================================
+   6. AIRY HOST — Current direction
+   Warm, approachable creator-to-customer platform UI
+   ========================================================= */
+
+[data-theme="airy-host"] {
+  --background: #F7F7F5;
+  --surface: #FFFFFF;
+  --surface-elevated: #FFFFFF;
+  --border: #E2E2DC;
+
+  --text-primary: #222522;
+  --text-secondary: #5F625D;
+  --text-muted: #7D8179;
+
+  --primary: #E85D5D;
+  --primary-foreground: #FFFFFF;
+
+  --accent: #E85D5D;
+  --accent-hover: #D84F50;
+
+  --success: #4D8A68;
+  --warning: #B87935;
+  --error: #C84E50;
 }

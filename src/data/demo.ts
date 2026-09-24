@@ -21,7 +21,7 @@ export const demoPhotos: Photo[] = images.map((image, index) => ({
 export const demoEvent: GalleryEvent = {
   id: 'event-aravalli',
   title: 'A day in the Aravallis',
-  subtitle: 'A wedding story by Divine Aperture Studio',
+  subtitle: 'A private collection by Divine Aperture Studio',
   date: '18 February 2025',
   location: 'Udaipur, Rajasthan',
   status: 'published',
