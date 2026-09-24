@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from ..config import get_settings
 from ..dependencies import AuthenticatedUser, require_superadmin
-from ..drive import DriveAccessError, DriveError, list_folder_images
+from ..drive import FULL_SIZE, DriveAccessError, DriveError, list_folder_images
 from ..image_tokens import sign, sign_drive_file
 from ..schemas import (
     EventCreate,
@@ -29,7 +29,8 @@ DRIVE_MARKER = "drive:"
 HERO_WIDTH = 1600
 DISPLAY_WIDTH = 1600
 THUMBNAIL_WIDTH = 600
-DOWNLOAD_WIDTH = 2048
+# Downloads serve native resolution, not a capped width.
+DOWNLOAD_WIDTH = FULL_SIZE
 
 PHOTO_COLUMNS = "id, filename, mime_type, width, height, sort_order, drive_file_id"
 

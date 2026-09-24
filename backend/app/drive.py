@@ -105,6 +105,9 @@ def service_account_email() -> str | None:
     return credentials.service_account_email if credentials else None
 
 
+FULL_SIZE = 0
+
+
 def source_url(file_id: str, width: int) -> str:
     """Where the bytes actually live.
 
@@ -114,7 +117,11 @@ def source_url(file_id: str, width: int) -> str:
     it is public to anyone holding the file id. Fetch it server-side instead —
     see fetch_image.
     """
-    return f"https://lh3.googleusercontent.com/d/{file_id}=w{width}"
+    # `s0` asks for native resolution; anything else is a max width. A 4024x6024
+    # RAW comes back as a 4024x6024 JPEG, which is what a client downloading
+    # "the photo" expects.
+    size = "s0" if width <= FULL_SIZE else f"w{width}"
+    return f"https://lh3.googleusercontent.com/d/{file_id}={size}"
 
 
 class DriveRateLimited(DriveError):

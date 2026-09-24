@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { ArrowLeft, Download, X } from 'lucide-react'
+import { ArrowLeft, ChevronLeft, ChevronRight, Download, X } from 'lucide-react'
 import { Brand } from './Brand'
 import { GoogleButton } from './GoogleButton'
 import { assetUrl, fetchGallery } from '../lib/api'
@@ -20,7 +20,8 @@ export function GalleryPage({ user, sessionLoaded, onBack }: { user: SessionUser
   const { slug = '' } = useParams()
   const [event, setEvent] = useState<AdminEvent | null>(null)
   const [photos, setPhotos] = useState<ApiPhoto[]>([])
-  const [active, setActive] = useState<ApiPhoto | null>(null)
+  const [activeIndex, setActiveIndex] = useState<number | null>(null)
+  const active = activeIndex === null ? null : photos[activeIndex] ?? null
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -42,6 +43,21 @@ export function GalleryPage({ user, sessionLoaded, onBack }: { user: SessionUser
   }, [slug])
 
   useEffect(() => { if (user) void load() }, [user, load])
+
+  // Arrow keys move through the gallery; Escape closes. Bound only while the
+  // lightbox is open so the grid keeps normal scrolling behaviour.
+  useEffect(() => {
+    if (activeIndex === null) return
+    function onKey(keyEvent: KeyboardEvent) {
+      if (keyEvent.key === 'Escape') { setActiveIndex(null); return }
+      if (keyEvent.key !== 'ArrowLeft' && keyEvent.key !== 'ArrowRight') return
+      keyEvent.preventDefault()
+      const step = keyEvent.key === 'ArrowRight' ? 1 : -1
+      setActiveIndex((current) => current === null ? null : (current + step + photos.length) % photos.length)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [activeIndex, photos.length])
 
   if (!sessionLoaded) return <Shell><p className="eyebrow">One moment</p></Shell>
 
@@ -78,11 +94,25 @@ export function GalleryPage({ user, sessionLoaded, onBack }: { user: SessionUser
           ? <p className="section-lede gallery-empty">The studio hasn’t added photographs to this gallery yet.</p>
           : (
             <section className="photo-grid">
-              {photos.map((photo) => (
+              {photos.map((photo, index) => (
                 <article className="photo-card" key={photo.id}>
-                  <button className="photo-image-button" onClick={() => setActive(photo)} aria-label={`Open ${photo.filename}`}>
-                    <img src={assetUrl(photo.thumbnail_url)} alt={photo.filename} loading="lazy" decoding="async" />
-                  </button>
+                  <div className="photo-frame">
+                    <button className="photo-image-button" onClick={() => setActiveIndex(index)} aria-label={`Open ${photo.filename}`}>
+                      <img src={assetUrl(photo.thumbnail_url)} alt={photo.filename} loading="lazy" decoding="async" />
+                    </button>
+                    {photo.download_url && (
+                      <a
+                        className="photo-download"
+                        href={assetUrl(photo.download_url)}
+                        download
+                        onClick={(clickEvent) => clickEvent.stopPropagation()}
+                        title={`Download ${photo.filename}`}
+                        aria-label={`Download ${photo.filename}`}
+                      >
+                        <Download size={15} />
+                      </a>
+                    )}
+                  </div>
                 </article>
               ))}
             </section>
@@ -90,10 +120,12 @@ export function GalleryPage({ user, sessionLoaded, onBack }: { user: SessionUser
       </main>
       {active && (
         <div className="lightbox" role="dialog" aria-modal="true">
-          <button className="lightbox-close" onClick={() => setActive(null)}><X /></button>
+          <button className="lightbox-close" onClick={() => setActiveIndex(null)} aria-label="Close"><X /></button>
+          <button className="lightbox-arrow left" onClick={() => setActiveIndex((i) => i === null ? null : (i - 1 + photos.length) % photos.length)} aria-label="Previous photograph"><ChevronLeft /></button>
+          <button className="lightbox-arrow right" onClick={() => setActiveIndex((i) => i === null ? null : (i + 1) % photos.length)} aria-label="Next photograph"><ChevronRight /></button>
           <img src={assetUrl(active.display_url)} alt={active.filename} decoding="async" />
           <div className="lightbox-info">
-            <span>{active.filename}</span>
+            <span>{active.filename} · {(activeIndex ?? 0) + 1} / {photos.length}</span>
             {active.download_url && (
               <a className="button button-light lightbox-download" href={assetUrl(active.download_url)} download>
                 <Download size={15} /> Download

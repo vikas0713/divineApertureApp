@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ArrowLeft, Check, Cloud, ExternalLink, RefreshCw } from 'lucide-react'
+import { ArrowLeft, Check, Cloud, Copy, ExternalLink, Link2, RefreshCw } from 'lucide-react'
 import { assetUrl, importEventPhotos, listEventPhotos, updateEventDownloads } from '../lib/api'
 import { getAccessToken, isSupabaseConfigured } from '../lib/supabase'
 import { track } from '../lib/analytics'
@@ -99,8 +99,9 @@ export function EventDetail({ event, onBack }: { event: AdminEvent; onBack: () =
             {downloads ? 'Clients may download photographs' : 'Downloads are off'}
           </label>
         </div>
-        <Row label="Gallery URL" value={event.status === 'published' ? `/g/${event.gallery_slug}` : null} href={event.status === 'published' ? `/g/${event.gallery_slug}` : null} />
       </div>
+
+      <ShareLink event={event} />
 
       <div className="import-header">
         <div>
@@ -125,6 +126,51 @@ export function EventDetail({ event, onBack }: { event: AdminEvent; onBack: () =
           ))}
         </div>
       )}
+    </section>
+  )
+}
+
+
+function ShareLink({ event }: { event: AdminEvent }) {
+  const [copied, setCopied] = useState(false)
+  // Absolute, so it is useful the moment it is pasted into a message.
+  const url = `${window.location.origin}/g/${event.gallery_slug}`
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 2000)
+    } catch {
+      setCopied(false)
+    }
+  }
+
+  if (event.status !== 'published') {
+    return (
+      <section className="share-panel share-panel-muted">
+        <div><p className="eyebrow">Shareable link</p><h3>Publish to share</h3></div>
+        <p className="field-note">This event is a draft. Publishing turns the link on for your clients.</p>
+      </section>
+    )
+  }
+
+  return (
+    <section className="share-panel">
+      <div className="share-panel-head">
+        <div><p className="eyebrow">Shareable link</p><h3><Link2 size={19} /> Send this to your clients</h3></div>
+      </div>
+      <div className="share-row">
+        <input readOnly value={url} onFocus={(e) => e.currentTarget.select()} aria-label="Gallery link" />
+        <button className="button button-dark" onClick={() => void copy()}>
+          {copied ? <><Check size={15} /> Copied</> : <><Copy size={15} /> Copy</>}
+        </button>
+        <a className="button button-light" href={url} target="_blank" rel="noreferrer">Open <ExternalLink size={14} /></a>
+      </div>
+      <small className="field-note">
+        Viewers sign in with Google before the gallery opens.{' '}
+        {event.downloads_enabled ? 'They can download full-resolution photographs.' : 'Downloads are currently off for this event.'}
+      </small>
     </section>
   )
 }
