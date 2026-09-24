@@ -1,0 +1,16 @@
+# Local Supabase CLI configuration for Divine Aperture Studio.
+# The project_id is only used for local CLI state; link deployments with:
+#   supabase link --project-ref <your-project-ref>
+project_id = "divine-aperture-studio"
+
+[api]
+enabled = true
+
+[db]
+port = 54322
+
+[studio]
+port = 54323
+
+[auth]
+enabled = true
