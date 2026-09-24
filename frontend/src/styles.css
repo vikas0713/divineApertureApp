@@ -45,3 +45,93 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .pagination-button { border: 1px solid #d9dad4; background: #fff; color: #222522; border-radius: 999px; padding: 10px 15px; font-size: 12px; }
 .pagination-button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
 .pagination-button:disabled { cursor: not-allowed; opacity: .4; }
+.storage-logos { display: flex; flex-wrap: wrap; gap: 12px; }
+.storage-logo { display: inline-flex; align-items: center; gap: 10px; background: #fff; border: 1px solid #e2e2dc; border-radius: 14px; padding: 12px 16px; font-size: 13px; color: #222522; letter-spacing: -.01em; box-shadow: 0 8px 24px rgba(34,37,34,.05); }
+.storage-logo svg { flex: 0 0 auto; }
+@media (max-width: 760px) { .storage-logos { margin-bottom: 45px; } }
+
+/* Admin dashboard: event listing, detail view, and auth form. */
+.section-actions { display: flex; gap: 18px; align-items: center; }
+.event-row-copy { border: 0; background: transparent; text-align: left; padding: 0; display: block; width: 100%; }
+.event-row-copy:hover h3 { color: var(--accent); }
+.event-row-placeholder { width: 170px; height: 110px; border-radius: 14px; background: var(--surface-2); border: 1px solid #e2e2dc; }
+.event-status.published i { background: #4f9d69; }
+.empty-state { background: #fff; border: 1px solid #e2e2dc; border-radius: 18px; padding: 45px 30px; text-align: center; box-shadow: 0 8px 24px rgba(34,37,34,.05); }
+.empty-state h3 { font-size: 26px; margin-bottom: 8px; }
+.empty-state p { color: var(--muted); margin-bottom: 24px; }
+.field-note { display: block; color: var(--dim); font-size: 11px; margin: -8px 0 18px; }
+.event-form { max-height: 86vh; overflow-y: auto; width: min(520px, 100%); }
+.event-form label { margin-bottom: 14px; }
+.form-error { color: #c0392b; font-size: 12px; margin: 0 0 14px; }
+.detail-hero { width: 100%; height: 280px; object-fit: cover; border-radius: 18px; margin: 20px 0 28px; }
+.detail-grid { border-top: 1px solid #e2e2dc; margin-top: 24px; }
+.detail-row { display: grid; grid-template-columns: 200px 1fr; gap: 20px; padding: 15px 0; border-bottom: 1px solid #e2e2dc; align-items: baseline; }
+.detail-row > span { color: var(--dim); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
+.detail-row strong { font-weight: 500; word-break: break-word; }
+.detail-row a { color: var(--accent); text-decoration: none; display: inline-flex; align-items: center; gap: 6px; word-break: break-all; }
+.detail-empty { color: var(--dim); font-style: normal; }
+.event-detail .back-button { margin-bottom: 20px; }
+@media (max-width: 760px) {
+  .section-actions { gap: 12px; }
+  .event-row-placeholder { width: 90px; height: 80px; }
+  .detail-row { grid-template-columns: 1fr; gap: 6px; }
+  .detail-hero { height: 180px; }
+}
+
+/* Login screens.
+   The base .centered-page gradient is a dark-theme leftover (#1a1e22) that
+   reads as a grey smudge on the light theme, so it is replaced here. */
+.centered-page { background: radial-gradient(circle at 80% 0%, #ffffff 0, var(--bg) 55%); }
+.login-card { padding: 11vh 24px 9vh; }
+.login-card h1 { font-size: clamp(42px, 5.5vw, 62px); margin-bottom: 20px; }
+.login-card p:not(.eyebrow) { font-size: 15px; margin-bottom: 34px; }
+
+.login-panel { max-width: 384px; margin: 0 auto; background: #fff; border: 1px solid #e2e2dc; border-radius: 18px; padding: 28px; box-shadow: 0 10px 30px rgba(34,37,34,.06); text-align: left; }
+.password-login { margin: 0; }
+.password-login label:last-of-type { margin-bottom: 20px; }
+
+/* Both buttons are block-level and full width: .button is inline-flex, so the
+   old `margin: 0 auto` never centred it and the trailing <small> wrapped
+   alongside it. */
+.login-panel .button { display: flex; width: 100%; margin: 0; }
+.login-panel .form-error { margin-bottom: 12px; }
+
+.login-divider { display: flex; align-items: center; gap: 12px; color: var(--dim); font-size: 11px; margin: 20px 0; }
+.login-divider::before, .login-divider::after { content: ''; flex: 1; height: 1px; background: #e8e8e3; }
+
+.demo-link { margin: 18px auto 0; }
+.login-card small { display: block; text-align: center; margin-top: 20px; line-height: 1.6; }
+
+/* Chrome's autofill otherwise paints inputs pale blue over the card. */
+.login-panel input:-webkit-autofill,
+.login-panel input:-webkit-autofill:hover,
+.login-panel input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #222522;
+  -webkit-box-shadow: 0 0 0 40px #fff inset;
+  caret-color: #222522;
+}
+
+@media (max-width: 760px) {
+  .login-card { padding: 8vh 20px 7vh; }
+  .login-panel { padding: 22px; }
+}
+
+/* Admin: imported photo grid and the Drive import header. */
+.import-header { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; border-top: 1px solid #e2e2dc; margin-top: 40px; padding-top: 30px; }
+.import-header h3 { font-size: 26px; margin: 8px 0 0; }
+.photo-thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; margin-top: 26px; }
+.photo-thumbs figure { margin: 0; }
+.photo-thumbs img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 12px; background: var(--surface-2); }
+.photo-thumbs figcaption { color: var(--dim); font-size: 10px; margin-top: 7px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gallery-empty { max-width: 1360px; margin: 0 auto; padding: 40px 5vw 90px; }
+@media (max-width: 760px) {
+  .import-header { display: block; }
+  .import-header .button { margin-top: 16px; width: 100%; }
+  .photo-thumbs { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; }
+}
+
+/* Download affordance in the lightbox, and the event download toggle. */
+.lightbox-download { background: rgba(255,255,255,.95); color: #222522; border-color: transparent; padding: 9px 14px; }
+.lightbox-download:hover { background: #fff; }
+.lightbox-info { align-items: center; }
+.detail-toggle { margin: 0; text-transform: none; letter-spacing: normal; font-size: 13px; color: #222522; }

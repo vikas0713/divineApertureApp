@@ -86,6 +86,37 @@ Status: Proposed
 
 Creator self-signup is disabled for the initial release. The public site exposes a waitlist form, but waitlisted creators do not receive application access yet. The superadmin is the only creator. Waitlist submissions do not create an authenticated user or active studio automatically.
 
+## ADR-014 — Superadmin signs in with email and password
+
+Status: Proposed
+
+The superadmin test account authenticates with a Supabase email/password
+credential rather than Google OAuth.
+
+This diverges from `TEST_MODE.md`, which prefers Google on the grounds that the
+same Google identity will later own the Drive connection. That reasoning still
+holds, so **the Google sign-in button is retained alongside the password form**
+— connecting Drive later does not require undoing this decision.
+
+The credential is created by hand in the Supabase dashboard. No password is
+committed to the repository, placed in a migration, or stored in `.env`.
+Public email signup must remain disabled so the `SUPERADMIN_EMAIL` allowlist
+stays the only way in (ADR-007).
+
+## ADR-015 — Event storage source is modelled generically
+
+Status: Proposed
+
+Events carry `storage_type` (`google_drive`, `dropbox`, `divine_aperture`) and
+`storage_url` rather than Drive-specific columns, so Dropbox and managed
+storage need no second migration. The Drive folder ID is *derived* from
+`storage_url` into the existing `drive_folder_id` column, keeping it ready for
+the importer.
+
+Only `google_drive` is accepted by the API today; the other two are rejected
+with 422 so an unusable event cannot be created. The dropdown shows all three
+with the unsupported options disabled.
+
 ## Open questions
 
 - Launch geography and business entity

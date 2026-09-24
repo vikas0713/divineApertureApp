@@ -2,11 +2,12 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$ROOT_DIR"
+FRONTEND_DIR="$ROOT_DIR/frontend"
 
-if [[ ! -d "$ROOT_DIR/node_modules" ]]; then
-  echo "Frontend dependencies are missing. Run: npm install"
+if [[ ! -d "$FRONTEND_DIR/node_modules" ]]; then
+  echo "Frontend dependencies are missing. Run: cd frontend && npm install"
   exit 1
 fi
 
+cd "$FRONTEND_DIR"
 exec npm run dev -- "$@"

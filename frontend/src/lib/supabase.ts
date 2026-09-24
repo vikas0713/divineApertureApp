@@ -14,6 +14,13 @@ export async function signInWithGoogle(redirectTo = window.location.origin) {
   })
 }
 
+export async function signInWithPassword(email: string, password: string) {
+  if (!supabase) throw new Error('Supabase is not configured')
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+  if (error) throw new Error(error.message)
+  return data
+}
+
 export async function signOut() {
   if (supabase) await supabase.auth.signOut()
 }
