@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from ..config import get_settings
 from ..dependencies import AuthenticatedUser, require_superadmin
-from ..drive import FULL_SIZE, DriveAccessError, DriveError, list_folder_images
+from ..drive import FULL_SIZE, DriveAccessError, DriveError, has_credentials, list_folder_images
 from ..image_tokens import sign, sign_drive_file
 from ..schemas import (
     EventCreate,
@@ -288,10 +288,13 @@ async def import_event_photos(
     settings = get_settings()
     # Either credential works: the service account also reads folders shared
     # with it, an API key only reads world-readable ones.
-    if not settings.google_service_account_file and not settings.google_api_key:
+    if not has_credentials():
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="No Google credentials configured (GOOGLE_SERVICE_ACCOUNT_FILE or GOOGLE_API_KEY)",
+            detail=(
+                "No Google credentials configured. Set GOOGLE_SERVICE_ACCOUNT_B64 "
+                "(or _JSON, or _FILE), or GOOGLE_API_KEY."
+            ),
         )
 
     try:

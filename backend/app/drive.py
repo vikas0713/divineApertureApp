@@ -5,6 +5,7 @@ link" is readable this way, so no OAuth consent flow is needed yet. When the
 creator's own Drive has to be read, this module is where OAuth would land.
 """
 
+from collections.abc import Iterator
 from dataclasses import dataclass
 from functools import lru_cache
 from typing import Any
@@ -12,6 +13,7 @@ from typing import Any
 import base64
 import binascii
 import json
+import pathlib
 import time
 
 import httpx
@@ -84,9 +86,16 @@ def _credentials() -> service_account.Credentials | None:
         return service_account.Credentials.from_service_account_info(info, scopes=SCOPES)
 
     if settings.google_service_account_file:
-        return service_account.Credentials.from_service_account_file(
-            settings.google_service_account_file, scopes=SCOPES
-        )
+        # Local convenience. In a deployment the key file is gitignored and so
+        # is never uploaded — carrying this variable over from .env.example is
+        # the likely mistake, so say that rather than raise FileNotFoundError.
+        path = pathlib.Path(settings.google_service_account_file)
+        if not path.is_file():
+            raise DriveError(
+                f"GOOGLE_SERVICE_ACCOUNT_FILE points at {settings.google_service_account_file}, "
+                "which does not exist. In a deployment set GOOGLE_SERVICE_ACCOUNT_B64 instead."
+            )
+        return service_account.Credentials.from_service_account_file(str(path), scopes=SCOPES)
 
     return None
 
@@ -98,6 +107,22 @@ def _auth_header() -> dict[str, str]:
     if not credentials.valid:
         credentials.refresh(_HttpxTransport())
     return {"Authorization": f"Bearer {credentials.token}"}
+
+
+def has_credentials() -> bool:
+    """Whether any Google credential is configured.
+
+    Single source of truth so callers cannot check a subset — the guard in the
+    import route once tested only FILE and API_KEY, which refused a
+    B64-configured deployment before it ever tried.
+    """
+    settings = get_settings()
+    return any((
+        settings.google_service_account_b64,
+        settings.google_service_account_json,
+        settings.google_service_account_file,
+        settings.google_api_key,
+    ))
 
 
 def service_account_email() -> str | None:
@@ -163,6 +188,51 @@ def fetch_image(file_id: str, width: int, attempts: int = 3) -> tuple[bytes, str
             time.sleep(delay)
             delay *= 2
     raise last_error
+
+
+def stream_image(file_id: str, width: int) -> tuple[Iterator[bytes], str]:
+    """Stream a preview instead of buffering it.
+
+    Used for bodies too large to cache (a full-resolution download is ~8.4 MB).
+    Buffering those would hold each one whole in a 512 MB container while it is
+    written to the client.
+
+    The client is closed by the generator when iteration finishes, so the
+    caller must consume it.
+    """
+    client = httpx.Client(timeout=TIMEOUT, follow_redirects=True)
+    # The context manager must stay referenced: letting it fall out of scope
+    # closes the stream before a single byte is read.
+    stream = client.stream("GET", source_url(file_id, width))
+    try:
+        response = stream.__enter__()
+    except httpx.HTTPError as exc:
+        client.close()
+        raise DriveError("Could not reach Google Drive") from exc
+
+    try:
+        if response.status_code == 429:
+            raise DriveRateLimited("Google Drive is rate limiting image requests")
+        if response.status_code in (403, 404):
+            raise DriveAccessError("Google Drive refused this image. Check the folder is shared publicly.")
+        if response.status_code >= 400:
+            raise DriveError("Google Drive returned an unexpected error")
+        content_type = response.headers.get("content-type", "")
+        if not content_type.startswith("image/"):
+            raise DriveRateLimited("Google Drive returned a page instead of an image")
+    except Exception:
+        stream.__exit__(None, None, None)
+        client.close()
+        raise
+
+    def chunks() -> Iterator[bytes]:
+        try:
+            yield from response.iter_bytes()
+        finally:
+            stream.__exit__(None, None, None)
+            client.close()
+
+    return chunks(), content_type
 
 
 def _image_or_raise(response: httpx.Response) -> tuple[bytes, str]:

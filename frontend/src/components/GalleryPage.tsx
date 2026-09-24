@@ -20,6 +20,7 @@ export function GalleryPage({ user, sessionLoaded, onBack }: { user: SessionUser
   const { slug = '' } = useParams()
   const [event, setEvent] = useState<AdminEvent | null>(null)
   const [photos, setPhotos] = useState<ApiPhoto[]>([])
+  const [page, setPage] = useState(1)
   const [activeIndex, setActiveIndex] = useState<number | null>(null)
   const active = activeIndex === null ? null : photos[activeIndex] ?? null
   const [loading, setLoading] = useState(false)
@@ -44,6 +45,11 @@ export function GalleryPage({ user, sessionLoaded, onBack }: { user: SessionUser
 
   useEffect(() => { if (user) void load() }, [user, load])
 
+  // 546 photos in one page means 546 proxy requests on a 0.1 vCPU instance.
+  const pageSize = 24
+  const pageCount = Math.max(1, Math.ceil(photos.length / pageSize))
+  const visible = photos.slice((page - 1) * pageSize, page * pageSize)
+
   // Arrow keys move through the gallery; Escape closes. Bound only while the
   // lightbox is open so the grid keeps normal scrolling behaviour.
   useEffect(() => {
@@ -53,7 +59,14 @@ export function GalleryPage({ user, sessionLoaded, onBack }: { user: SessionUser
       if (keyEvent.key !== 'ArrowLeft' && keyEvent.key !== 'ArrowRight') return
       keyEvent.preventDefault()
       const step = keyEvent.key === 'ArrowRight' ? 1 : -1
-      setActiveIndex((current) => current === null ? null : (current + step + photos.length) % photos.length)
+      setActiveIndex((current) => {
+        if (current === null) return null
+        const next = (current + step + photos.length) % photos.length
+        // Keep the grid on the page holding the photo now being viewed, so
+        // closing the lightbox does not jump somewhere unrelated.
+        setPage(Math.floor(next / pageSize) + 1)
+        return next
+      })
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -94,10 +107,10 @@ export function GalleryPage({ user, sessionLoaded, onBack }: { user: SessionUser
           ? <p className="section-lede gallery-empty">The studio hasn’t added photographs to this gallery yet.</p>
           : (
             <section className="photo-grid">
-              {photos.map((photo, index) => (
+              {visible.map((photo, offset) => (
                 <article className="photo-card" key={photo.id}>
                   <div className="photo-frame">
-                    <button className="photo-image-button" onClick={() => setActiveIndex(index)} aria-label={`Open ${photo.filename}`}>
+                    <button className="photo-image-button" onClick={() => setActiveIndex((page - 1) * pageSize + offset)} aria-label={`Open ${photo.filename}`}>
                       <img src={assetUrl(photo.thumbnail_url)} alt={photo.filename} loading="lazy" decoding="async" />
                     </button>
                     {photo.download_url && (
@@ -117,6 +130,13 @@ export function GalleryPage({ user, sessionLoaded, onBack }: { user: SessionUser
               ))}
             </section>
           )}
+        {pageCount > 1 && (
+          <nav className="gallery-pagination" aria-label="Gallery pages">
+            <button className="pagination-button" disabled={page === 1} onClick={() => { setPage(page - 1); window.scrollTo({ top: 0, behavior: 'smooth' }) }}>Previous</button>
+            <span>Page {page} of {pageCount}</span>
+            <button className="pagination-button" disabled={page === pageCount} onClick={() => { setPage(page + 1); window.scrollTo({ top: 0, behavior: 'smooth' }) }}>Next</button>
+          </nav>
+        )}
       </main>
       {active && (
         <div className="lightbox" role="dialog" aria-modal="true">
