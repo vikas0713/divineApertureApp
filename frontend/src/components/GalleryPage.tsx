@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { ArrowLeft, ChevronLeft, ChevronRight, Download, X } from 'lucide-react'
 import { Brand } from './Brand'
@@ -23,6 +23,11 @@ export function GalleryPage({ user, sessionLoaded, onBack }: { user: SessionUser
   const [activeIndex, setActiveIndex] = useState<number | null>(null)
   const active = activeIndex === null ? null : photos[activeIndex] ?? null
   const [loading, setLoading] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(false)
+  const nextOffsetRef = useRef<number | null>(0)
+  const loadingMoreRef = useRef(false)
+  const loadMoreRef = useRef<HTMLDivElement | null>(null)
   const [error, setError] = useState('')
 
   const load = useCallback(async () => {
@@ -31,9 +36,11 @@ export function GalleryPage({ user, sessionLoaded, onBack }: { user: SessionUser
     setLoading(true)
     setError('')
     try {
-      const payload = await fetchGallery(slug, token)
+      const payload = await fetchGallery(slug, token, 0)
       setEvent(payload.event)
       setPhotos(payload.photos)
+      setHasMore(payload.has_more)
+      nextOffsetRef.current = payload.next_offset
       track('gallery_viewed', { gallery_type: 'private' })
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Unable to open this gallery')
@@ -41,6 +48,36 @@ export function GalleryPage({ user, sessionLoaded, onBack }: { user: SessionUser
       setLoading(false)
     }
   }, [slug])
+
+  const loadMore = useCallback(async () => {
+    const offset = nextOffsetRef.current
+    if (!slug || offset === null || loadingMoreRef.current) return
+    const token = await getAccessToken()
+    if (!token) return
+    loadingMoreRef.current = true
+    setLoadingMore(true)
+    try {
+      const payload = await fetchGallery(slug, token, offset)
+      setPhotos((current) => [...current, ...payload.photos])
+      setHasMore(payload.has_more)
+      nextOffsetRef.current = payload.next_offset
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : 'Unable to load more photographs')
+    } finally {
+      loadingMoreRef.current = false
+      setLoadingMore(false)
+    }
+  }, [slug])
+
+  useEffect(() => {
+    const sentinel = loadMoreRef.current
+    if (!sentinel || !hasMore || typeof IntersectionObserver === 'undefined') return
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) void loadMore()
+    }, { rootMargin: '0px' })
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [hasMore, loadMore, photos.length])
 
   useEffect(() => { if (user) void load() }, [user, load])
 
@@ -117,6 +154,11 @@ export function GalleryPage({ user, sessionLoaded, onBack }: { user: SessionUser
               ))}
             </section>
           )}
+        {hasMore && (
+          <div ref={loadMoreRef} className="gallery-load-sentinel" aria-live="polite">
+            {loadingMore ? 'Loading more photographs…' : 'More photographs below'}
+          </div>
+        )}
       </main>
       {active && (
         <div className="lightbox" role="dialog" aria-modal="true">

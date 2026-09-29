@@ -286,12 +286,22 @@ async def import_event_photos(
         )
 
     settings = get_settings()
-    # Either credential works: the service account also reads folders shared
-    # with it, an API key only reads world-readable ones.
-    if not settings.google_service_account_file and not settings.google_api_key:
+    # Either credential works: service-account credentials can be supplied as
+    # a file, JSON, or base64-encoded JSON. An API key only reads
+    # world-readable folders.
+    if not (
+        settings.google_service_account_b64
+        or settings.google_service_account_json
+        or settings.google_service_account_file
+        or settings.google_api_key
+    ):
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="No Google credentials configured (GOOGLE_SERVICE_ACCOUNT_FILE or GOOGLE_API_KEY)",
+            detail=(
+                "No Google credentials configured "
+                "(GOOGLE_SERVICE_ACCOUNT_B64, GOOGLE_SERVICE_ACCOUNT_JSON, "
+                "GOOGLE_SERVICE_ACCOUNT_FILE, or GOOGLE_API_KEY)"
+            ),
         )
 
     try:

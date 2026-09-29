@@ -124,10 +124,12 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .photo-thumbs img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 12px; background: var(--surface-2); }
 .photo-thumbs figcaption { color: var(--dim); font-size: 10px; margin-top: 7px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gallery-empty { max-width: 1360px; margin: 0 auto; padding: 40px 5vw 90px; }
+.gallery-load-sentinel { max-width: 1360px; margin: -35px auto 90px; padding: 24px 5vw; text-align: center; color: var(--dim); font: 10px var(--mono); letter-spacing: .08em; text-transform: uppercase; }
 @media (max-width: 760px) {
   .import-header { display: block; }
   .import-header .button { margin-top: 16px; width: 100%; }
   .photo-thumbs { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; }
+  .gallery-load-sentinel { margin-bottom: 60px; }
 }
 
 /* Download affordance in the lightbox, and the event download toggle. */

@@ -105,3 +105,5 @@ class ImportResponse(BaseModel):
 class GalleryResponse(BaseModel):
     event: EventResponse
     photos: list[PhotoResponse]
+    has_more: bool = False
+    next_offset: int | None = None

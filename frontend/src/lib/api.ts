@@ -92,8 +92,9 @@ export async function listEventPhotos(eventId: string, token: string) {
   return request<ApiPhoto[]>(`/admin/events/${eventId}/photos`, token)
 }
 
-export async function fetchGallery(slug: string, token: string) {
-  return request<GalleryPayload>(`/galleries/${slug}`, token)
+export async function fetchGallery(slug: string, token: string, offset = 0, limit = 18) {
+  const params = new URLSearchParams({ offset: String(offset), limit: String(limit) })
+  return request<GalleryPayload>(`/galleries/${slug}?${params.toString()}`, token)
 }
 
 export async function updateEventDownloads(eventId: string, enabled: boolean, token: string) {

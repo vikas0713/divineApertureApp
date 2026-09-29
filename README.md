@@ -79,3 +79,67 @@ cd backend  && .venv/bin/pytest
 Configure Google OAuth and redirect URLs in Supabase, then set the environment
 variables from `frontend/.env.example` and `backend/.env.example`. Keep secrets
 out of Git.
+
+## Deployment
+
+The production frontend is hosted on Cloudflare Pages and the API is deployed
+to FastAPI Cloud. The commands below assume you are authenticated to both
+providers and are running from the repository root.
+
+### Supabase migrations
+
+Link the repository to the intended hosted project, then apply pending
+migrations:
+
+```bash
+supabase link --project-ref <supabase-project-ref>
+supabase db push
+```
+
+### FastAPI Cloud backend
+
+Install the backend dependencies, configure environment variables in FastAPI
+Cloud, and deploy from the `backend/` directory:
+
+```bash
+cd backend
+python3 -m venv .venv
+.venv/bin/python -m pip install -e '.[dev]'
+
+.venv/bin/fastapi cloud env set SUPABASE_URL "https://<project-ref>.supabase.co"
+.venv/bin/fastapi cloud env set SUPABASE_PUBLISHABLE_KEY "<publishable-key>"
+.venv/bin/fastapi cloud env set --secret SUPABASE_SECRET_KEY "<server-only-key>"
+.venv/bin/fastapi cloud env set --secret GOOGLE_SERVICE_ACCOUNT_B64 "<base64-service-account-json>"
+.venv/bin/fastapi cloud env set SUPERADMIN_EMAIL "<superadmin-email>"
+.venv/bin/fastapi cloud env set SUPERADMIN_STUDIO_ID "<studio-uuid>"
+.venv/bin/fastapi cloud env set FRONTEND_ORIGINS "https://<pages-project>.pages.dev"
+.venv/bin/fastapi cloud env set API_ENV "production"
+
+.venv/bin/fastapi deploy
+cd ..
+```
+
+### Cloudflare Pages frontend
+
+Build the Vite app with the public Supabase settings and the deployed API URL,
+then publish the `frontend/dist` directory:
+
+```bash
+cd frontend
+npm install
+
+export VITE_API_BASE_URL="https://<fastapi-app>.fastapicloud.dev/api"
+export VITE_SUPABASE_URL="https://<project-ref>.supabase.co"
+export VITE_SUPABASE_PUBLISHABLE_KEY="<publishable-key>"
+export VITE_SUPERADMIN_EMAIL="<superadmin-email>"
+export VITE_ADS_ENABLED="false"
+
+npm run build
+npx wrangler pages deploy dist \
+  --project-name <pages-project> \
+  --branch main
+cd ..
+```
+
+Only `VITE_*` values belong in the frontend build. Never expose
+`SUPABASE_SECRET_KEY` or any service-role key to the browser.

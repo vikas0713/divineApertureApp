@@ -32,7 +32,8 @@ def _clear_caches():
 
 def test_no_credentials_configured(monkeypatch: pytest.MonkeyPatch) -> None:
     for var in ("GOOGLE_SERVICE_ACCOUNT_B64", "GOOGLE_SERVICE_ACCOUNT_JSON", "GOOGLE_SERVICE_ACCOUNT_FILE"):
-        monkeypatch.delenv(var, raising=False)
+        # Empty process-level values override any developer .env file.
+        monkeypatch.setenv(var, "")
     monkeypatch.setattr(drive, "_credentials", lambda: None)
     assert drive.service_account_email() is None
 
@@ -44,7 +45,8 @@ def test_b64_is_rejected_when_not_valid_base64_json(monkeypatch: pytest.MonkeyPa
 
 
 def test_json_is_rejected_when_malformed(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.delenv("GOOGLE_SERVICE_ACCOUNT_B64", raising=False)
+    # Keep the test independent of a local .env that may contain production-like credentials.
+    monkeypatch.setenv("GOOGLE_SERVICE_ACCOUNT_B64", "")
     monkeypatch.setenv("GOOGLE_SERVICE_ACCOUNT_JSON", "{not json")
     with pytest.raises(drive.DriveError, match="valid JSON"):
         drive._credentials()

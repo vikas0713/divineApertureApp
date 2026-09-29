@@ -10,7 +10,7 @@ own authorization rather than leaning on RLS.
 
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from ..dependencies import AuthenticatedUser, get_current_user
 from ..schemas import GalleryResponse
@@ -24,6 +24,8 @@ router = APIRouter(prefix="/galleries", tags=["galleries"])
 async def read_gallery(
     slug: str,
     user: AuthenticatedUser = Depends(get_current_user),
+    limit: int = Query(default=18, ge=1, le=60),
+    offset: int = Query(default=0, ge=0),
 ) -> GalleryResponse:
     client = get_admin_client()
     try:
@@ -57,15 +59,22 @@ async def read_gallery(
             .select(PHOTO_COLUMNS)
             .eq("event_id", event["id"])
             .order("sort_order")
+            .range(offset, offset + limit)
             .execute()
         )
     except Exception as exc:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Unable to load photos") from exc
 
+    page = photos.data or []
+    has_more = len(page) > limit
+    page = page[:limit]
+
     return GalleryResponse(
         event=_event_response(event),
         photos=[
             _photo_response(row, allow_download=bool(event.get("original_downloads_enabled")))
-            for row in photos.data or []
+            for row in page
         ],
+        has_more=has_more,
+        next_offset=offset + limit if has_more else None,
     )

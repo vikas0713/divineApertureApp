@@ -60,6 +60,8 @@ export interface ApiPhoto {
 export interface GalleryPayload {
   event: AdminEvent
   photos: ApiPhoto[]
+  has_more: boolean
+  next_offset: number | null
 }
 
 export interface ImportResult {
