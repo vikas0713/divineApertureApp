@@ -117,6 +117,20 @@ Only `google_drive` is accepted by the API today; the other two are rejected
 with 422 so an unusable event cannot be created. The dropdown shows all three
 with the unsupported options disabled.
 
+## ADR-016 — FastAPI Cloud for the API, Cloudflare Pages for the web app
+
+Status: Proposed
+
+The API deploys to FastAPI Cloud; the React app to Cloudflare Pages. ADR-002
+already chose Pages, and its free tier permits commercial use where Vercel's
+Hobby plan explicitly does not.
+
+FastAPI Cloud's free tier is 0.1 vCPU / 512 MB with scale-to-zero. That budget
+is a design constraint, not a footnote: the image cache is byte-budgeted rather
+than entry-counted, downloads are streamed rather than buffered, and the client
+gallery paginates. Reverting any of those risks an out-of-memory container.
+See `DEPLOYMENT.md`.
+
 ## Open questions
 
 - Launch geography and business entity
