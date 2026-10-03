@@ -68,8 +68,14 @@ export default function App() {
         <GalleryPage user={user} sessionLoaded={sessionLoaded} onBack={() => navigate('/')} />
       } />
       <Route path="/waitlist" element={<WaitlistScreen onBack={() => navigate('/')} />} />
+      {/* Sign-in returns the viewer to the page they started from, so someone
+          already authenticated can land back here. This screen renders no
+          session and would be a dead end, so move them on — /admin/login does
+          the same just below. */}
       <Route path="/login" element={
-        <LoginScreen mode="client" onBack={() => navigate('/')} onDemoLogin={() => demoLogin('client')} onClientLogin={() => { setUser({ email: 'client@example.com', name: 'Gallery guest', role: 'client' }); openGallery() }} />
+        user
+          ? <Navigate to="/gallery" replace />
+          : <LoginScreen mode="client" onBack={() => navigate('/')} onDemoLogin={() => demoLogin('client')} onClientLogin={() => { setUser({ email: 'client@example.com', name: 'Gallery guest', role: 'client' }); openGallery() }} />
       } />
       <Route path="/admin/login" element={
         user?.role === 'superadmin'
