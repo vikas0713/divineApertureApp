@@ -96,6 +96,68 @@ These are baked in at build time, so changing one requires a rebuild.
 7. Add the Pages URL to Supabase's redirect allowlist and the Google OAuth
    client's authorised origins.
 
+## Redeploying (what is actually live)
+
+Both tiers are deployed:
+
+- API — `https://divine-aperture-backend.fastapicloud.dev`, app linked via
+  `backend/.fastapicloud/cloud.json`.
+- Web — `https://divine-aperture-studio.pages.dev`, Pages project
+  `divine-aperture-studio`.
+- Database — hosted Supabase `ebznjyvchhuxqgfyjbtf` (ap-south-1). All four
+  migrations are applied; `supabase migration list` shows local and remote
+  matching.
+
+**The Pages project is direct-upload — `Git Provider: No`.** Pushing to `main`
+rebuilds nothing. This is the easiest thing to get wrong: the API redeploys from
+the working tree while the web app silently stays on whatever was last uploaded.
+Every frontend change needs an explicit deploy.
+
+```bash
+# API — from backend/. Reads env vars already set on the app; code comes from
+# the working tree, minus .gitignore and .fastapicloudignore.
+cd backend && .venv/bin/fastapi deploy
+
+# Web — from frontend/. Build FIRST: the values below are baked in at build
+# time, and frontend/.env.local points at localhost, so a plain `npm run build`
+# ships a bundle that calls localhost in production.
+cd frontend && npm run build
+npx wrangler@latest pages deploy dist --project-name=divine-aperture-studio --branch=main
+```
+
+`frontend/.env.production.local` (gitignored) holds the production build values
+and overrides `.env.local` for `vite build`. If the API host or Supabase project
+ever changes, **update that file too** or the next build will quietly ship stale
+endpoints. Verify after building:
+
+```bash
+grep -o 'https://[a-z.-]*fastapicloud.dev/api' dist/assets/index-*.js
+```
+
+## Hosted auth configuration is NOT in this repo
+
+`supabase/config.toml` is local-CLI only. The hosted project is configured in
+the dashboard, and it has drifted from the local config. As of 2026-10-03,
+`GET https://ebznjyvchhuxqgfyjbtf.supabase.co/auth/v1/settings` reports:
+
+- **`"google": false`** — the provider is off, so a client who opens a shared
+  gallery and clicks *Continue with Google* gets
+  `"Unsupported provider: provider is not enabled"`. The gate is deployed but
+  unusable, and it stays that way until an OAuth client exists in Google Cloud
+  (see the gate's spec). This is the one thing blocking the client journey.
+- **`"disable_signup": false` with `"email": true`** — public email signup is
+  **open in production**, which ADR-007 forbids: the `SUPERADMIN_EMAIL`
+  allowlist is supposed to be the only way in. `config.toml` sets
+  `enable_signup = false`, but that never reached the hosted project. Turn it
+  off under **Authentication → Providers → Email**.
+
+Also set, and not verifiable from outside: **Authentication → URL
+Configuration** must list `https://divine-aperture-studio.pages.dev` *and* a
+`/**` entry. `signInWithGoogle` returns the viewer to the page they started on,
+so a `/g/<slug>` target must be allowed — Supabase falls back to `Site URL`
+silently when it is not, which drops the gallery slug and looks like a bug in
+the app.
+
 ## Known limits
 
 - **Scale-to-zero cold starts.** The first request after idle is slow on
